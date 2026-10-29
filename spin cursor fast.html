@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spin Cursor Fast</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background-color: #0d0f18;
+      color: #ffffff;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      overflow: hidden;
+      cursor: pointer;
+    }
+
+    /* Top Bar pour l'utilisateur & les réglages */
+    .top-bar {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      right: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 10;
+    }
+
+    .user-section, .settings-section {
+      display: flex;
+      gap: 15px;
+      align-items: center;
+    }
+
+    .btn {
+      background: rgba(0, 210, 255, 0.1);
+      border: 1px solid #00d2ff;
+      color: #00d2ff;
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.2s;
+    }
+
+    .btn:hover {
+      background: #00d2ff;
+      color: #0d0f18;
+      box-shadow: 0 0 10px rgba(0, 210, 255, 0.5);
+    }
+
+    .user-info {
+      color: #00d2ff;
+      font-weight: bold;
+    }
+
+    h1 {
+      font-size: 3rem;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: #00d2ff;
+      text-shadow: 0 0 10px rgba(0, 210, 255, 0.5);
+    }
+
+    .instructions {
+      font-size: 1.2rem;
+      color: #a0a5c0;
+      margin-bottom: 40px;
+    }
+
+    .speed-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 2px solid rgba(0, 210, 255, 0.2);
+      border-radius: 20px;
+      padding: 30px 60px;
+      text-align: center;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+      backdrop-filter: blur(4px);
+      transition: border-color 0.3s;
+    }
+
+    .speed-card.active {
+      border-color: #00d2ff;
+      box-shadow: 0 0 20px rgba(0, 210, 255, 0.4);
+    }
+
+    .speed-value {
+      font-size: 4.5rem;
+      font-weight: bold;
+      color: #ffffff;
+      font-family: monospace;
+    }
+
+    .unit {
+      font-size: 1.8rem;
+      color: #00d2ff;
+      margin-left: 5px;
+    }
+
+    .max-speed {
+      margin-top: 15px;
+      font-size: 1rem;
+      color: #808a9d;
+    }
+
+    /* Leaderboard fixe en bas à droite */
+    .leaderboard-container {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      width: 280px;
+      background: rgba(13, 15, 24, 0.85);
+      border: 2px solid rgba(0, 210, 255, 0.3);
+      border-radius: 15px;
+      padding: 15px;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(5px);
+      z-index: 10;
+    }
+
+    .leaderboard-container h3 {
+      margin: 0 0 10px 0;
+      color: #00d2ff;
+      font-size: 1.1rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      text-align: center;
+    }
+
+    .lb-tabs {
+      display: flex;
+      justify-content: space-around;
+      margin-bottom: 10px;
+      border-bottom: 1px solid rgba(0, 210, 255, 0.2);
+      padding-bottom: 5px;
+    }
+
+    .lb-tab {
+      color: #808a9d;
+      font-size: 0.85rem;
+      font-weight: bold;
+      cursor: pointer;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .lb-tab.active {
+      color: #00d2ff;
+      background: rgba(0, 210, 255, 0.15);
+    }
+
+    .lb-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .lb-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 5px 0;
+      font-size: 0.9rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .lb-item:last-child {
+      border-bottom: none;
+    }
+
+    .lb-rank {
+      color: #00d2ff;
+      font-weight: bold;
+      margin-right: 8px;
+    }
+
+    /* Modal / Popups (Menu & Connexion) */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(5px);
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+    }
+
+    .modal-content {
+      background: #16192b;
+      border: 2px solid #00d2ff;
+      border-radius: 15px;
+      padding: 30px;
+      width: 320px;
+      text-align: center;
+    }
+
+    .modal-content h2 {
+      margin-top: 0;
+      color: #00d2ff;
+    }
+
+    .modal-content input, .modal-content select {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 5px;
+      border: 1px solid #00d2ff;
+      background: #0d0f18;
+      color: white;
+    }
+
+    .close-btn {
+      margin-top: 15px;
+      background: #ff4757;
+      border: none;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Bar -->
+  <div class="top-bar">
+    <div class="user-section" id="user-section">
+      <button class="btn" onclick="openModal('auth-modal')">Se Connecter / S'inscrire</button>
+    </div>
+    <div class="settings-section">
+      <button class="btn" onclick="openModal('unit-modal')">Change type</button>
+    </div>
+  </div>
+
+  <h1>Spin Cursor Fast</h1>
+  <p class="instructions">Cliquez, maintenez le clic et faites tourner votre curseur !</p>
+
+  <div class="speed-card" id="card">
+    <div class="speed-display">
+      <span class="speed-value" id="speed">0.0000</span>
+      <span class="unit" id="unit-display">km/m</span>
+    </div>
+    <div class="max-speed">
+      Record : <span id="max-speed">0.0000</span> <span class="unit-text">km/m</span>
+    </div>
+  </div>
+
+  <!-- Leaderboard fixe en bas à droite -->
+  <div class="leaderboard-container">
+    <h3>Leaderboard</h3>
+    <div class="lb-tabs">
+      <span class="lb-tab active" onclick="setLbUnit('km/m', this)">km/m</span>
+      <span class="lb-tab" onclick="setLbUnit('km/s', this)">km/s</span>
+      <span class="lb-tab" onclick="setLbUnit('km/h', this)">km/h</span>
+    </div>
+    <ul class="lb-list" id="lb-list">
+      <!-- Rempli par JavaScript -->
+    </ul>
+  </div>
+
+  <!-- Modal pour Change Type -->
+  <div class="modal" id="unit-modal">
+    <div class="modal-content">
+      <h2>Change type</h2>
+      <select id="unit-select" onchange="changeUnit()">
+        <option value="km/m" selected>km/m (Kilomètres par minute)</option>
+        <option value="km/s">km/s (Kilomètres par seconde)</option>
+        <option value="km/h">km/h (Kilomètres par heure)</option>
+      </select>
+      <button class="btn close-btn" onclick="closeModal('unit-modal')">Fermer</button>
+    </div>
+  </div>
+
+  <!-- Modal pour Inscription / Connexion -->
+  <div class="modal" id="auth-modal">
+    <div class="modal-content">
+      <h2 id="auth-title">Compte</h2>
+      <input type="text" id="username" placeholder="Nom d'utilisateur">
+      <input type="password" id="password" placeholder="Mot de passe">
+      <button class="btn" onclick="login()">Se Connecter</button>
+      <button class="btn" style="margin-top: 5px;" onclick="register()">Créer un compte</button>
+      <button class="btn close-btn" onclick="closeModal('auth-modal')">Annuler</button>
+    </div>
+  </div>
+
+  <script>
+    let isMouseDown = false;
+    let lastX = 0;
+    let lastY = 0;
+    let lastTime = 0;
+
+    let currentSpeedKms = 0; // vitesse de base en km/s
+    let maxSpeedKms = 0;
+    let currentUnit = 'km/m'; // km/m par défaut
+    let currentLbUnit = 'km/m';
+
+    let currentUser = null;
+
+    const PIXEL_TO_KM = 0.000000264583;
+
+    const speedElement = document.getElementById('speed');
+    const maxSpeedElement = document.getElementById('max-speed');
+    const unitDisplay = document.getElementById('unit-display');
+    const unitTexts = document.querySelectorAll('.unit-text');
+    const cardElement = document.getElementById('card');
+
+    // Gestion du Mouvement
+    window.addEventListener('mousedown', (e) => {
+      // Ignorer si on clique sur un bouton, le leaderboard ou une modale
+      if (e.target.closest('.top-bar') || e.target.closest('.modal') || e.target.closest('.leaderboard-container')) return;
+
+      isMouseDown = true;
+      lastX = e.clientX;
+      lastY = e.clientY;
+      lastTime = performance.now();
+      cardElement.classList.add('active');
+    });
+
+    window.addEventListener('mouseup', () => {
+      isMouseDown = false;
+      currentSpeedKms = 0;
+      speedElement.innerText = (0).toFixed(4);
+      cardElement.classList.remove('active');
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isMouseDown) return;
+
+      const currentTime = performance.now();
+      const deltaTime = (currentTime - lastTime) / 1000; // secondes
+
+      if (deltaTime > 0) {
+        const dx = e.clientX - lastX;
+        const dy = e.clientY - lastY;
+        const distancePx = Math.sqrt(dx * dx + dy * dy);
+        const distanceKm = distancePx * PIXEL_TO_KM;
+
+        // Calcul de base en km/s
+        currentSpeedKms = distanceKm / deltaTime;
+
+        // Mise à jour du record en km/s
+        if (currentSpeedKms > maxSpeedKms) {
+          maxSpeedKms = currentSpeedKms;
+          if (currentUser) {
+            saveUserRecord();
+          }
+        }
+
+        // Affichage selon l'unité choisie
+        speedElement.innerText = convertSpeed(currentSpeedKms, currentUnit).toFixed(4);
+        maxSpeedElement.innerText = convertSpeed(maxSpeedKms, currentUnit).toFixed(4);
+
+        lastX = e.clientX;
+        lastY = e.clientY;
+        lastTime = currentTime;
+      }
+    });
+
+    // Conversion de vitesse (base: km/s)
+    function convertSpeed(speedKms, unit) {
+      switch (unit) {
+        case 'km/s': return speedKms;
+        case 'km/m': return speedKms * 60; // 1 minute = 60s
+        case 'km/h': return speedKms * 3600; // 1 heure = 3600s
+        default: return speedKms * 60;
+      }
+    }
+
+    // Gestion de l'unité principale
+    function changeUnit() {
+      currentUnit = document.getElementById('unit-select').value;
+      unitDisplay.innerText = currentUnit;
+      unitTexts.forEach(el => el.innerText = currentUnit);
+      maxSpeedElement.innerText = convertSpeed(maxSpeedKms, currentUnit).toFixed(4);
+    }
+
+    // Modal Control
+    function openModal(id) {
+      document.getElementById(id).style.display = 'flex';
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).style.display = 'none';
+    }
+
+    // Système de compte (localStorage)
+    function register() {
+      const u = document.getElementById('username').value.trim();
+      const p = document.getElementById('password').value;
+
+      if (!u || !p) {
+        alert("Veuillez remplir tous les champs !");
+        return;
+      }
+
+      if (localStorage.getItem('user_' + u)) {
+        alert("Ce nom d'utilisateur existe déjà !");
+        return;
+      }
+
+      const userData = { username: u, password: p, record: 0 };
+      localStorage.setItem('user_' + u, JSON.stringify(userData));
+      alert("Compte créé avec succès ! Vous pouvez maintenant vous connecter.");
+      updateLeaderboard();
+    }
+
+    function login() {
+      const u = document.getElementById('username').value.trim();
+      const p = document.getElementById('password').value;
+
+      const storedUser = localStorage.getItem('user_' + u);
+
+      if (!storedUser) {
+        alert("Utilisateur non trouvé !");
+        return;
+      }
+
+      const userData = JSON.parse(storedUser);
+
+      if (userData.password !== p) {
+        alert("Mot de passe incorrect !");
+        return;
+      }
+
+      currentUser = userData;
+      maxSpeedKms = userData.record || 0;
+      maxSpeedElement.innerText = convertSpeed(maxSpeedKms, currentUnit).toFixed(4);
+
+      updateUserUI();
+      closeModal('auth-modal');
+    }
+
+    function logout() {
+      currentUser = null;
+      maxSpeedKms = 0;
+      maxSpeedElement.innerText = (0).toFixed(4);
+      updateUserUI();
+    }
+
+    function saveUserRecord() {
+      if (currentUser) {
+        currentUser.record = maxSpeedKms;
+        localStorage.setItem('user_' + currentUser.username, JSON.stringify(currentUser));
+        updateLeaderboard();
+      }
+    }
+
+    function updateUserUI() {
+      const container = document.getElementById('user-section');
+      if (currentUser) {
+        container.innerHTML = `
+          <span class="user-info">Joueur : ${currentUser.username}</span>
+          <button class="btn" onclick="logout()">Déconnexion</button>
+        `;
+      } else {
+        container.innerHTML = `
+          <button class="btn" onclick="openModal('auth-modal')">Se Connecter / S'inscrire</button>
+        `;
+      }
+    }
+
+    // Gestion du Leaderboard
+    function setLbUnit(unit, element) {
+      currentLbUnit = unit;
+      document.querySelectorAll('.lb-tab').forEach(tab => tab.classList.remove('active'));
+      element.classList.add('active');
+      updateLeaderboard();
+    }
+
+    function updateLeaderboard() {
+      const lbList = document.getElementById('lb-list');
+      lbList.innerHTML = '';
+
+      let users = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        let key = localStorage.key(i);
+        if (key.startsWith('user_')) {
+          users.push(JSON.parse(localStorage.getItem(key)));
+        }
+      }
+
+      // Trier par record (décroissant)
+      users.sort((a, b) => (b.record || 0) - (a.record || 0));
+
+      const topUsers = users.slice(0, 5);
+
+      if (topUsers.length === 0) {
+        lbList.innerHTML = '<li class="lb-item" style="color:#808a9d; justify-content:center;">Aucun joueur</li>';
+        return;
+      }
+
+      topUsers.forEach((u, index) => {
+        const speedFormatted = convertSpeed(u.record || 0, currentLbUnit).toFixed(4);
+        const li = document.createElement('li');
+        li.className = 'lb-item';
+        li.innerHTML = `
+          <span><span class="lb-rank">#${index + 1}</span>${u.username}</span>
+          <span><strong>${speedFormatted}</strong></span>
+        `;
+        lbList.appendChild(li);
+      });
+    }
+
+    // Initialisation
+    updateLeaderboard();
+  </script>
+</body>
+</html>
